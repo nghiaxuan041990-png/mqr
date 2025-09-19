@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR Code Generator by Phạm Nghĩa</title>
+  <style>
+    :root{--bg:#0b0d10;--fg:#e7ecef;--muted:#9aa4ad;--card:#14181d;--accent:#6ee7b7}
+    *{box-sizing:border-box}
+    body{margin:0;padding:24px;background:linear-gradient(120deg,#0b0d10,#0f1318);color:var(--fg);font:500 15px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    h1{font-size:22px;margin:0 0 16px; text-align:center}
+    .app{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:420px 1fr;gap:20px}
+    .panel{background:var(--card);border:1px solid #1f252c;border-radius:16px;padding:16px;overflow:visible}
+    .panel h2{font-size:15px;margin:0 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+    .row{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:10px;margin:10px 0}
+    .row.full{grid-template-columns:1fr}
+    label{color:var(--muted)}
+    input[type="text"],select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a323b;background:#0f1216;color:var(--fg)}
+    input[type="range"]{width:100%}
+    input[type="file"]{display:block;width:100%}
+    .hint{color:var(--muted);font-size:12px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button{appearance:none;border:1px solid #2a323b;background:#12171d;color:var(--fg);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+    button.primary{background:var(--accent);color:#073b2b;border-color:#0a4;}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .preview{display:flex;align-items:center;justify-content:center;min-height:420px;background:#0c1015;border-radius:16px;border:1px dashed #2a323b;position:relative}
+    canvas,.preview img{max-width:100%;height:auto}
+    .footer{margin-top:16px;color:var(--muted);font-size:12px;text-align:center}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .status{margin-top:10px;font-size:12px;color:var(--muted)}
+    .tests{margin-top:16px;padding:12px;border-radius:12px;border:1px solid #2a323b;background:#0f1318}
+    .tests h3{margin:0 0 8px;font-size:13px;color:var(--muted)}
+    .test-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed #27303a}
+    .test-item:first-child{border-top:none}
+    .pill{font-size:11px;border-radius:999px;padding:2px 8px;border:1px solid #2a323b}
+    .ok{color:#0f5132;background:#0a3622;border-color:#0a3622}
+    .fail{color:#842029;background:#2c0b0e;border-color:#842029}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+  </style>
+  </head>
+<body>
+  <h1>Phần mềm tạo mã QR</h1>
+  <div class="app">
+    <div class="panel">
+            <div class="row full">
+        <label for="data">Nội dung (URL / văn bản)</label>
+        <input id="data" type="text" placeholder="https://example.com" value="https://example.com" />
+      </div>
+
+      <div class="row">
+        <label for="size">Kích thước (px)</label>
+        <input id="size" type="range" min="200" max="512" value="366" />
+      </div>
+
+      <div class="grid">
+        <div class="row">
+          <label for="margin">Viền trắng (px)</label>
+          <input id="margin" type="range" min="0" max="32" value="8" />
+        </div>
+        <div class="row">
+          <label for="ecc">Sửa lỗi (ECC)</label>
+          <select id="ecc">
+            <option value="L">L (7%)</option>
+            <option value="M" selected>M (15%)</option>
+            <option value="Q">Q (25%)</option>
+            <option value="H">H (30%)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="dotType">Kiểu QR Code</label>
+        <select id="dotType">
+          <option value="square" selected>square (chuẩn)</option>
+          <option value="dots">dots (tròn)</option>
+          <option value="rounded">rounded (bo đều)</option>
+          <option value="extra-rounded">extra-rounded (bo mạnh)</option>
+          <option value="classy">classy (bo thông minh)</option>
+          <option value="classy-rounded">classy-rounded (bo thông minh mạnh)</option>
+          <option value="diamond">diamond (hình thoi)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="fg">Màu QR</label>
+        <input id="fg" type="color" value="#000000" />
+      </div>
+      <div class="row">
+        <label for="bg">Nền</label>
+        <input id="bg" type="color" value="#ffffff" />
+      </div>
+
+      
+      <div class="row">
+        <label for="logo">Tải logo (PNG/JPG/SVG*)</label>
+        <input id="logo" type="file" accept="image/*" />
+      </div>
+
+      <div class="grid">
+        <div class="row">
+          <label for="logoScale">Tỷ lệ logo (%)</label>
+          <input id="logoScale" type="range" min="10" max="30" value="20" />
+        </div>
+        <!-- đã bỏ hoàn toàn "Đệm nền sau logo (px)" -->
+      </div>
+
+      <div class="row">
+        <label for="logoBg">Nền sau logo</label>
+        <input id="logoBg" type="color" value="#ffffff" />
+      </div>
+      <div class="row">
+        <label for="logoBgAlpha">Độ trong suốt (%)</label>
+        <input id="logoBgAlpha" type="range" min="0" max="97" value="97" step="1" />
+      </div>
+     Nếu kéo thanh trượt, nền sẽ hiện dần với màu đã chọn.
+      <div class="actions">
+        <button id="btnGen" class="primary" disabled>Tạo / Cập nhật</button>
+        <button id="btnClearLogo" disabled>Xoá logo</button>
+        <button id="btnDownload" disabled>Tải PNG</button>
+              </div>
+      <div id="libStatus" class="status">Đang tải thư viện QRCode...</div>
+
+      <div class="tests" id="tests" hidden>
+        <h3>Kiểm thử tự động</h3>
+        <div id="testList"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Xem trước</h2>
+      <div id="preview" class="preview"><!-- canvas sẽ xuất hiện ở đây --></div>
+      <div class="footer">Copyright © 2025 - Trung tâm Dữ liệu và Ứng dụng khoa học công nghệ Biển.</div>
+    </div>
+  </div>
+
+  <script>
+  // ===== Helpers =====
+  const $ = (sel) => document.querySelector(sel);
+  const els = {
+    data: $('#data'),
+    size: $('#size'),
+    margin: $('#margin'),
+    ecc: $('#ecc'),
+    fg: $('#fg'),
+    bg: $('#bg'),
+    logo: $('#logo'),
+    logoScale: $('#logoScale'),
+    logoBg: $('#logoBg'),
+    logoBgAlpha: $('#logoBgAlpha'), // NEW
+    btnGen: $('#btnGen'),
+    btnClearLogo: $('#btnClearLogo'),
+    btnDownload: $('#btnDownload'),
+    btnRunTests: $('#btnRunTests'),
+    preview: $('#preview'),
+    libStatus: $('#libStatus'),
+    tests: $('#tests'),
+    testList: $('#testList'),
+    dotType: $('#dotType'),
+  };
+
+  let qrCanvas = null;
+  let logoImage = null;
+
+  function drawRoundedRect(ctx, x, y, w, h, r){
+    const rr = Math.max(0, Math.min(r, Math.min(w,h)/2));
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.lineTo(x+w-rr, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+    ctx.lineTo(x+w, y+h-rr);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+    ctx.lineTo(x+rr, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+    ctx.lineTo(x, y+rr);
+    ctx.quadraticCurveTo(x, y, x+rr, y);
+    ctx.closePath();
+  }
+
+  function drawSmartRounded(ctx, x, y, w, h, radii){
+    const cap = (v)=> Math.max(0, Math.min(v, Math.min(w,h)/2));
+    const tl=cap(radii.tl), tr=cap(radii.tr), br=cap(radii.br), bl=cap(radii.bl);
+    ctx.beginPath();
+    ctx.moveTo(x+tl, y);
+    ctx.lineTo(x+w-tr, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+tr);
+    ctx.lineTo(x+w, y+h-br);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-br, y+h);
+    ctx.lineTo(x+bl, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-bl);
+    ctx.lineTo(x, y+tl);
+    ctx.quadraticCurveTo(x, y, x+tl, y);
+    ctx.closePath();
+  }
+
+  function drawDiamond(ctx, x, y, w, h){
+    const cx = x + w/2, cy = y + h/2;
+    ctx.beginPath();
+    ctx.moveTo(cx, y);
+    ctx.lineTo(x+w, cy);
+    ctx.lineTo(cx, y+h);
+    ctx.lineTo(x, cy);
+    ctx.closePath();
+  }
+
+  function hexToRgb(hex){
+    let h = hex.replace('#','').trim();
+    if (h.length === 3) { h = h.split('').map(ch => ch+ch).join(''); }
+    const int = parseInt(h.slice(0,6), 16);
+    return { r: (int>>16)&255, g: (int>>8)&255, b: int&255 };
+  }
+
+  const ECC_MAP = () => ({
+    L: window.QRCode?.CorrectLevel?.L ?? 1,
+    M: window.QRCode?.CorrectLevel?.M ?? 0,
+    Q: window.QRCode?.CorrectLevel?.Q ?? 3,
+    H: window.QRCode?.CorrectLevel?.H ?? 2
+  });
+
+  function enableUI(enabled){
+    [els.btnGen, els.btnClearLogo, els.btnDownload].forEach(b=> b.disabled = !enabled);
+  }
+
+  function neighborsOf(matrix, r, c){
+    const n = matrix.moduleCount;
+    const isDark = (rr, cc) => (rr>=0 && rr<n && cc>=0 && cc<n) ? matrix.isDark(rr,cc) : false;
+    return { top:isDark(r-1,c), right:isDark(r,c+1), bottom:isDark(r+1,c), left:isDark(r,c-1) };
+  }
+
+  async function generate(){
+    if(!window.QRCode){
+      els.libStatus.textContent = 'Không tìm thấy thư viện QRCode. Hãy kiểm tra kết nối hoặc dùng bản offline.';
+      return;
+    }
+    const size = +els.size.value;
+    const margin = Math.max(0, (+els.margin.value|0));
+    const usable = Math.max(64, size - margin*2);
+    const fg = els.fg.value, bg = els.bg.value;
+    const ecc = (ECC_MAP()[els.ecc.value] ?? window.QRCode.CorrectLevel.M);
+    const type = els.dotType.value;
+
+    // Tạo QR để lấy ma trận
+    const tmp = document.createElement('div');
+    const inst = new window.QRCode(tmp, {
+      text: els.data.value || '',
+      width: usable, height: usable,
+      colorDark: fg, colorLight: bg, correctLevel: ecc
+    });
+    const matrix = inst._oQRCode;
+    const count = matrix.moduleCount;
+
+    // Canvas output
+    const out = document.createElement('canvas');
+    out.width = size; out.height = size;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,size,size);
+
+    const tileW = usable / count, tileH = usable / count;
+
+    ctx.fillStyle = fg;
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) {
+        if (!matrix.isDark(r, c)) continue;
+
+        const w = Math.ceil((c+1)*tileW) - Math.floor(c*tileW);
+        const h = Math.ceil((r+1)*tileH) - Math.floor(r*tileH);
+        const x = margin + Math.round(c*tileW);
+        const y = margin + Math.round(r*tileH);
+
+        switch(type){
+          case 'square': ctx.fillRect(x,y,w,h); break;
+          case 'dots': {
+            const rad = Math.min(w,h)/2;
+            ctx.beginPath(); ctx.arc(x+w/2,y+h/2,rad,0,Math.PI*2); ctx.fill(); break;
+          }
+          case 'rounded': {
+            drawRoundedRect(ctx,x,y,w,h,Math.min(w,h)*0.35); ctx.fill(); break;
+          }
+          case 'extra-rounded': {
+            drawRoundedRect(ctx,x,y,w,h,Math.min(w,h)*0.5); ctx.fill(); break;
+          }
+          case 'diamond': { drawDiamond(ctx,x,y,w,h); ctx.fill(); break; }
+          case 'classy':
+          case 'classy-rounded': {
+            const nb = neighborsOf(matrix,r,c);
+            const base = Math.min(w,h) * (type==='classy-rounded' ? 0.5 : 0.35);
+            const rTL = (!nb.top && !nb.left) ? base : ((!nb.top || !nb.left) ? base*0.6 : 0);
+            const rTR = (!nb.top && !nb.right)? base : ((!nb.top || !nb.right)? base*0.6 : 0);
+            const rBR = (!nb.bottom && !nb.right)? base : ((!nb.bottom || !nb.right)? base*0.6 : 0);
+            const rBL = (!nb.bottom && !nb.left) ? base : ((!nb.bottom || !nb.left) ? base*0.6 : 0);
+            drawSmartRounded(ctx,x,y,w,h,{tl:rTL,tr:rTR,br:rBR,bl:rBL}); ctx.fill(); break;
+          }
+          default: ctx.fillRect(x,y,w,h);
+        }
+      }
+    }
+
+    // ===== Logo =====
+    if(logoImage){
+      const scale  = (+els.logoScale.value)/100;
+      const target = Math.round(size * scale);
+
+      // vùng logo (không có đệm)
+      const pad = 0;
+      const bx = Math.round((size - target)/2 - pad);
+      const by = Math.round((size - target)/2 - pad);
+      const bw = target + pad*2, bh = target + pad*2;
+
+      // nền logo theo màu + alpha
+      const alpha = 1 - ((els.logoBgAlpha ? +els.logoBgAlpha.value : 0) / 100); // 0..1
+      if (alpha > 0){
+        const {r,g,b} = hexToRgb(els.logoBg.value || '#ffffff');
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+        drawRoundedRect(ctx,bx,by,bw,bh,Math.max(8, target*0.12));
+        ctx.fill();
+      } else {
+        // mặc định trong suốt: cắt lỗ dưới logo
+        ctx.clearRect(bx, by, bw, bh);
+      }
+
+      // vẽ ảnh logo
+      const {naturalWidth:w, naturalHeight:h} = logoImage;
+      const ratio = w/h; let lw = target, lh = target;
+      if (ratio > 1) lh = Math.round(target/ratio); else lw = Math.round(target*ratio);
+      const lx = Math.round((size - lw)/2), ly = Math.round((size - lh)/2);
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(logoImage, lx, ly, lw, lh);
+    }
+
+    els.preview.innerHTML = ''; els.preview.appendChild(out);
+    qrCanvas = out;
+  }
+
+  function loadQRCodeLib(){
+    return new Promise((resolve,reject)=>{
+      if(window.QRCode){ return resolve(); }
+	const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+      s.async = false; s.onload = resolve; s.onerror = ()=>reject(new Error('Không thể tải qrcodejs từ CDNJS.'));
+      document.head.appendChild(s);
+    });
+  }
+
+  function addTest(name, fn){
+    const row = document.createElement('div'); row.className = 'test-item';
+    const label = document.createElement('div'); label.textContent = name;
+    const pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = 'Đang chạy...';
+    row.appendChild(pill); row.appendChild(label); els.testList.appendChild(row);
+    const set = (ok,msg)=>{ pill.textContent = ok? 'PASS' : 'FAIL'; pill.className = 'pill ' + (ok? 'ok':'fail'); if(msg){ label.textContent = name + ' — ' + msg; } };
+    Promise.resolve().then(fn).then(()=>set(true)).catch(e=> set(false, e.message||String(e)));
+  }
+
+  function runTests(){
+    els.tests.hidden = false; els.testList.innerHTML = '';
+    addTest('Thư viện có mặt (window.QRCode)', ()=>{ if(!window.QRCode) throw new Error('QRCode undefined'); });
+  }
+
+  function initUI(){
+    els.btnGen.addEventListener('click', generate);
+    ['data','size','margin','ecc','fg','bg','logoScale','logoBg','logoBgAlpha','dotType'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.addEventListener('input', generate);
+      el.addEventListener('change', generate);
+    });
+
+    els.btnClearLogo.addEventListener('click', ()=>{ logoImage=null; els.logo.value=''; generate(); });
+    els.btnDownload.addEventListener('click', ()=>{
+      if(!qrCanvas) return;
+      const a = document.createElement('a'); a.download = 'qrcode.png';
+      a.href = qrCanvas.toDataURL('image/png'); a.click();
+    });
+    els.logo.addEventListener('change', ()=>{
+      const file = els.logo.files && els.logo.files[0];
+      if(!file){ logoImage=null; generate(); return; }
+      const url = URL.createObjectURL(file); const img = new Image();
+      img.onload = ()=>{ logoImage = img; URL.revokeObjectURL(url); generate(); };
+      img.src = url;
+    });
+
+    enableUI(true);
+    els.libStatus.textContent = 'Thư viện QRCode đã sẵn sàng.';
+    generate();
+  }
+
+  (async function start(){
+    try{ await loadQRCodeLib(); initUI(); }
+    catch(err){ els.libStatus.textContent = 'Lỗi tải thư viện: ' + err.message + '\n→ Cần bản OFFLINE 100%? Mình có thể nhúng mã vào file.'; enableUI(false); }
+  })();
+  </script>
+</body>
+</html>
