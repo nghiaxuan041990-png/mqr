@@ -1,4 +1,1 @@
-echo mqr.io.vn > CNAME
-git add CNAME
-git commit -m "Add custom domain"
-git push
+
