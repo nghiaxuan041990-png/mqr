@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -112,11 +113,15 @@
         <input id="logoBgAlpha" type="range" min="0" max="97" value="97" step="1" />
       </div>
      Nếu kéo thanh trượt, nền sẽ hiện dần với màu đã chọn.
+		<div class="row">
+		<label for="filename">Tên mã QR</label>
+		<input id="filename" type="text" placeholder="qrcode" value="qrcode" />
+		</div>
       <div class="actions">
         <button id="btnGen" class="primary" disabled>Tạo / Cập nhật</button>
         <button id="btnClearLogo" disabled>Xoá logo</button>
         <button id="btnDownload" disabled>Tải PNG</button>
-              </div>
+      </div>
       <div id="libStatus" class="status">Đang tải thư viện QRCode...</div>
 
       <div class="tests" id="tests" hidden>
@@ -155,6 +160,7 @@
     tests: $('#tests'),
     testList: $('#testList'),
     dotType: $('#dotType'),
+	filename: $('#filename'),
   };
 
   let qrCanvas = null;
@@ -224,6 +230,15 @@
     const isDark = (rr, cc) => (rr>=0 && rr<n && cc>=0 && cc<n) ? matrix.isDark(rr,cc) : false;
     return { top:isDark(r-1,c), right:isDark(r,c+1), bottom:isDark(r+1,c), left:isDark(r,c-1) };
   }
+  function filenameSafe(s){
+    const cleaned = (s || '')
+    .toString()
+    .trim()
+    .replace(/[^a-z0-9\-_.]+/gi, '-') 
+    .replace(/-+/g, '-')              
+    .replace(/^[-_.]+|[-_.]+$/g, ''); 
+  return cleaned || 'qrcode';
+}
 
   async function generate(){
     if(!window.QRCode){
@@ -363,9 +378,12 @@
 
     els.btnClearLogo.addEventListener('click', ()=>{ logoImage=null; els.logo.value=''; generate(); });
     els.btnDownload.addEventListener('click', ()=>{
-      if(!qrCanvas) return;
-      const a = document.createElement('a'); a.download = 'qrcode.png';
-      a.href = qrCanvas.toDataURL('image/png'); a.click();
+    if(!qrCanvas) return;
+	const base = filenameSafe(els.filename?.value || 'qrcode');
+	const a = document.createElement('a');
+	a.download = `${base}.png`;
+	a.href = qrCanvas.toDataURL('image/png');
+	a.click();
     });
     els.logo.addEventListener('change', ()=>{
       const file = els.logo.files && els.logo.files[0];
